@@ -45,9 +45,9 @@ A traditional logging method has to duplicate all $u$ chunks, while our procedur
 
 After logging and updating $u - \delta$ chunks, the remaining steps of the write procedure can be viewed as a repeat of a step that in-place updates some of the $\delta$ chunks.
 We assume, in the $i$th step, $\epsilon_i$ chunks are updated in-place in parallel, and before that step, $d_i$ chunks have been updated in-place by previous steps ($d_1=0$ denotes the first step).
-Therefore, $d_{i+1} = d_i + e_i$, for $i \in \mathbb{N}^{+}$. If $d_i + \epsilon_i < \delta$, that means not all $\delta$ chunks can be updated in the $i$th step, so we have to do a next step; otherwise, the write procedure ends.
+Therefore, $d_{i+1} = d_i + \epsilon_i$, for $i \in \mathbb{N}^{+}$. If $d_i + \epsilon_i < \delta$, that means not all $\delta$ chunks can be updated in the $i$th step, so we have to do a next step; otherwise, the write procedure ends.
 Various write paths result from choosing a different $\epsilon$ in every step.
-A write path consists of a series of steps $(0, e_1), (d_2, e_2), ..., (\delta, 0)$: in the first step, we update $e_1$ chunks while no chunks have been updated; in the second step, we update $e_2$ chunks while $d_2$ chunks (which equals to $e_1$ in this step) have been updated; so on and so forth; finally, we have updated all $\delta$ chunks and thus we should update no chunks in the end step.
+A write path consists of a series of steps $(0, e_1), (d_2, \epsilon_2), ..., (\delta, 0)$: in the first step, we update $e_1$ chunks while no chunks have been updated; in the second step, we update $\epsilon_2$ chunks while $d_2$ chunks (which equals to $\epsilon_1$ in this step) have been updated; so on and so forth; finally, we have updated all $\delta$ chunks and thus we should update no chunks in the end step.
 We visualize the steps in an $\epsilon$-dimensional space (see Figure~\ref{fig:d-e-space}).
 A point in the figure represents a step in a write path.
 
@@ -73,7 +73,7 @@ satisfying one of the following two constraints.
 \hline
 State & \# of chunks & Version \\
 \hline
-not updated & $n - u$ & new/old \\
+not to be updated & $n - u$ & new/old \\
 logged and updated & $u - \delta$ & new/old \\
 updated in-place & $d_i$ & new \\
 being-updated in-place & $\epsilon_i$ & -- \\
@@ -192,6 +192,43 @@ In conclusion, \protocol/ produces a safe write procedure whose every step is re
 
 \section{\protocol/-2PC Protocol}
 \label{sec:2pc}
+
+We aim to prove that, after a logged Phase~\Romannum{2}, the stripe is recoverable by both roll-back and roll-forward.
+
+If Phase~\Romannum{2} does not exist, i.e., $\delta \le 2(m-f)$, the roll-back region and the roll-forward region in Figure~\ref{fig:d-e-space} overlap.
+The state of the chunks after Phase~\Romannum{1} is $(m-f,0)$.
+Note that a point with $\epsilon=0$ denotes a state (or a ``step'' without updating any chunk).
+The point falls in both the roll-back region and the roll-forward region, so the state is recoverable by both roll-back and roll-forward.
+
+Next, we consider the case $\delta > 2(m-f)$.
+Phase~\Romannum{2} updates $s_2=\delta-2(m-f)$ chunks in-place.
+\protocol/-2PC requires the $s_2$ chunks to be logged as well, so only the rest $2(m-f)$ chunks avoid logging.
+Accordingly, the state after Phase~\Romannum{2} is as Table~\ref{tab:states-2} lists.
+We examine the state with C1 and C2.
+Both C1 and C2 translate to $n-(m-f) \ge k$.
+In the worst case, all $f$ failures destroy the old-version/new-version chunks for C1/C2, so C1/C2 becomes $n-(m-f)-f \ge k$, i.e., $n-m \ge k$.
+Since $n-m=k$ by definition, the inequality is constantly true.
+
+Overall, after a logged Phase~\Romannum{2} (no matter whether it is empty), the
+chunks can always roll back or roll forward, if 2PC requires either.
+
+\begin{table}[!ht]
+\centering
+\begin{tabular}{l|c|c}
+\hline
+State & \# of chunks & Version \\
+\hline
+not to be updated & $n-u$ & new/old \\
+logged and updated & $u - 2(m-f)$ & new/old \\
+updated in-place & $m-f$ & new \\
+being-updated in-place & $0$ & -- \\
+not-yet-updated in-place & $m-f$ & old \\
+\hline
+\end{tabular}
+\caption{Chunk states after a logged Phase~\Romannum{2}.}
+\label{tab:states-2}
+\end{table}
+
 
 
 \section{\textsc{RainTx} Protocol}
