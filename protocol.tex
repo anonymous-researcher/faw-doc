@@ -28,7 +28,7 @@
 \maketitle
 
 In this document, we demonstrate the correctness of the \protocol/ protocol (\S\ref{sec:faw}), its variant for two-phase commit (2PC) (\S\ref{sec:2pc}) and the \textsc{RainTx} transaction protocol (\S\ref{sec:raintx}).
-Also note two \emph{errata} of the original paper (\S\ref{sec:errata}).
+Also note two \emph{errata} of our original paper (\S\ref{sec:errata}).
 
 \section{\protocol/ Write Procedure}
 \label{sec:faw}
@@ -62,7 +62,7 @@ Note that a chunk is regarded as holding both new and old versions (``new/old'')
 path (``not updated''), it is regarded as holding both versions. A chunk
 holds none (``--'') if it is being updated in-place.
 
-As described in the original paper, we assume a distribution of $f$ is a tuple $(f_0, f_1, f_2)$, where $f_0$ failures destroy
+As described in our original paper, a distribution of $f$ is a tuple $(f_0, f_1, f_2)$, where $f_0$ failures destroy
 chunks holding both versions, $f_1$ failures destroy old-version only chunks,
 and $f_2$ destroy new-version only chunks. Then, the invariant is equivalent to
 satisfying one of the following two constraints.
@@ -193,21 +193,21 @@ In conclusion, \protocol/ produces a safe write procedure whose every step is re
 \section{\protocol/-2PC Protocol}
 \label{sec:2pc}
 
-We aim to prove that, after a logged Phase~\Romannum{2}, the stripe is recoverable by both roll-back and roll-forward.
+We aim to prove that, after the logged Phase~\Romannum{2}, a stripe is recoverable by both roll-back and roll-forward.
 
 If Phase~\Romannum{2} does not exist, i.e., $\delta \le 2(m-f)$, the roll-back region and the roll-forward region in Figure~\ref{fig:d-e-space} overlap.
 The state of the chunks after Phase~\Romannum{1} is $(m-f,0)$.
 Note that a point with $\epsilon=0$ denotes a state (or a ``step'' without updating any chunk).
 The point falls in both the roll-back region and the roll-forward region, so the state is recoverable by both roll-back and roll-forward.
 
-Next, we consider the case $\delta > 2(m-f)$.
-Phase~\Romannum{2} updates $s_2=\delta-2(m-f)$ chunks in-place.
+If $\delta > 2(m-f)$, Phase~\Romannum{2} updates $s_2=\delta-2(m-f)$ chunks in-place.
 \protocol/-2PC requires the $s_2$ chunks to be logged as well, so only the rest $2(m-f)$ chunks avoid logging.
 Accordingly, the state after Phase~\Romannum{2} is as Table~\ref{tab:states-2} lists.
 We examine the state with C1 and C2.
 Both C1 and C2 translate to $n-(m-f) \ge k$.
 In the worst case, all $f$ failures destroy the old-version/new-version chunks for C1/C2, so C1/C2 becomes $n-(m-f)-f \ge k$, i.e., $n-m \ge k$.
 Since $n-m=k$ by definition, the inequality is constantly true.
+Therefore, both C1 for roll-back and C2 for roll-forward are meet.
 
 Overall, after a logged Phase~\Romannum{2} (no matter whether it is empty), the
 chunks can always roll back or roll forward, if 2PC requires either.
@@ -234,27 +234,45 @@ not-yet-updated in-place & $m-f$ & old \\
 \section{\textsc{RainTx} Protocol}
 \label{sec:raintx}
 
+The serialization point of a \textsc{RainTx} transaction is the same as in FaRM, because the integration with RAIN does not change the concurrency control behavior.
+Particularly, the serialization point is when all the write locks are acquired for a read-write transaction, and when the last read is performed for a read-only transaction.
+The reasoning behind this statement can be found in \S4-Correctness of the original FaRM paper~\cite{Dragojevic:2015:NCD:2815400.2815425}.
+
+To ensure serializability across failures, a transaction is regarded as \emph{committed} in FaRM after Step~\ding{194}, i.e., all have been prepared (see Figure~5(a) in our original paper).
+The logs ensure the commit decision to be able to survive failures.
+Similarly, the commit point of \textsc{RainTx} is after its Step~\ding{194}, i.e., after Phase~\Romannum{1} and logged Phase~\Romannum{2}.
+As demonstrated in \S\ref{sec:2pc}, RAIN guarantees the commit decision is safe.
+
+Note that, to survive a failure of the coordinator, region IDs of the transaction have to be included in the logs of FaRM or the version records of \textsc{RainTx}.
+Upon recovery, the region IDs are used to find proper logs or version records to judge if all regions have been prepared in FaRM or passed Phase~\Romannum{2} in \textsc{RainTx}, respectively.
+If so, the transaction must be committed by replaying the logs in FaRM or by rolling forward in \textsc{RainTx}.
+
+Finally, our implementation of FaRM's protocol is based on two-sided RDMA, so we do not need the special treatment for reserving log spaces as described in the original FaRM paper.
+
 \section{Errata}
 \label{sec:errata}
 
 \begin{itemize}
 
-\item Figure~5(b) of the original paper should be replaced with Figure~\ref{fig:raintx-commit}.
+\item Figure~5(b) of our original paper should be replaced with Figure~\ref{fig:raintx-commit}.
 The original figure does not match our description of Step~\ding{196} in the text, though it is also a correct protocol -- it shows an optimization we planned but did not get enough time to implement before the paper submission.
 The optimization is to unlock primaries as early as possible without waiting for the coordinator's notifications.
 Note that our evaluation of \textsc{RainTx} follows Figure~\ref{fig:raintx-commit} without the optimization.
 Its Step~\ding{196} is similar to Step~\ding{196} of FaRM.
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=0.7\linewidth]{figures/raintx-commit}
   \caption{The commit protocol of \textsc{RainTx}.}
   \label{fig:raintx-commit}
 \end{figure}
 
-\item In Figure~8(a) of the original paper, ``FM-thr'' and ``RX-thr'' should be swapped.
+\item In Figure~8(a) of our original paper, ``FM-thr'' and ``RX-thr'' should be swapped.
 The throughput of \textsc{RainTx} (RX-thr) is higher than that of FaRM (FM-thr).
 
 \end{itemize}
+
+\bibliographystyle{acm}
+\bibliography{ref}
 
 \end{document}

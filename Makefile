@@ -6,6 +6,8 @@ TEX = $(wildcard *.tex)
 $(PAPER).pdf: $(TEX) 
 	echo $^
 	pdflatex $(PAPER)
+	bibtex $(PAPER)
+	pdflatex $(PAPER)
 	pdflatex $(PAPER)
 
 clean:
