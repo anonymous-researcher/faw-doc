@@ -47,7 +47,7 @@ After logging and updating $u - \delta$ chunks, the remaining steps of the write
 We assume, in the $i$th step, $\epsilon_i$ chunks are updated in-place in parallel, and before that step, $d_i$ chunks have been updated in-place by previous steps ($d_1=0$ denotes the first step).
 Therefore, $d_{i+1} = d_i + \epsilon_i$, for $i \in \mathbb{N}^{+}$. If $d_i + \epsilon_i < \delta$, that means not all $\delta$ chunks can be updated in the $i$th step, so we have to do a next step; otherwise, the write procedure ends.
 Various write paths result from choosing a different $\epsilon$ in every step.
-A write path consists of a series of steps $(0, e_1), (d_2, \epsilon_2), ..., (\delta, 0)$: in the first step, we update $e_1$ chunks while no chunks have been updated; in the second step, we update $\epsilon_2$ chunks while $d_2$ chunks (which equals to $\epsilon_1$ in this step) have been updated; so on and so forth; finally, we have updated all $\delta$ chunks and thus we should update no chunks in the end step.
+A write path consists of a series of steps $(0, \epsilon_1), (d_2, \epsilon_2), ..., (\delta, 0)$: in the first step, we update $\epsilon_1$ chunks while no chunks have been updated; in the second step, we update $\epsilon_2$ chunks while $d_2$ chunks (which equals to $\epsilon_1$) have been updated; so on and so forth; finally, we have updated all $\delta$ chunks and thus we should update no chunks in the end step.
 We visualize the steps in an $\epsilon$-dimensional space (see Figure~\ref{fig:d-e-space}).
 A point in the figure represents a step in a write path.
 
